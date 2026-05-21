@@ -16,7 +16,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
-    return templates.TemplateResponse("base.html", {"request": request})
+    # Render a simple home page with links
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/inventory", response_class=HTMLResponse)
 def inventory(request: Request):

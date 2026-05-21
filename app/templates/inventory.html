@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+{% raw %}
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4">Inventory</h2>
     <div id="inventory-app">
@@ -63,4 +64,5 @@ createApp({
     }
 }).mount('#inventory-app');
 </script>
+{% endraw %}
 {% endblock %}

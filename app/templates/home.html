@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <h1 class="text-4xl font-bold mb-4">Welcome to Hobby Stock Tracker</h1>
+    <p class="text-lg mb-8 text-gray-700">Easily track your craft supplies, manage your inventory, and keep your wish list ready for your next project or shopping trip.</p>
+    <div class="flex space-x-4">
+        <a href="/inventory" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded shadow text-lg font-semibold transition">Go to Inventory</a>
+        <a href="/wishlist" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded shadow text-lg font-semibold transition">Go to Wishlist</a>
+    </div>
+</div>
+{% endblock %}
