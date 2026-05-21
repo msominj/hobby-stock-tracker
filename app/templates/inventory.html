@@ -2,9 +2,65 @@
 {% block content %}
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4">Inventory</h2>
-    <!-- Inventory grid will go here -->
-    <div id="inventory-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <!-- Vue will render items here -->
+    <div id="inventory-app">
+        <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4 space-y-2 md:space-y-0">
+            <input v-model="search" type="text" placeholder="Search by name..." class="border rounded px-2 py-1 w-full md:w-64" />
+            <select v-model="category" class="border rounded px-2 py-1 w-full md:w-48">
+                <option value="">All Categories</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+            </select>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div v-for="item in filteredItems" :key="item.id" class="bg-white rounded shadow p-2 flex flex-col items-center">
+                <img :src="item.photo_path || 'https://via.placeholder.com/100'" alt="Photo" class="w-24 h-24 object-cover rounded mb-2 border">
+                <div class="font-semibold">{{ item.name }}</div>
+                <div class="text-sm text-gray-500 mb-1">{{ item.category }}</div>
+                <div class="flex items-center space-x-2 mt-2">
+                    <button @click="decrement(item)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-lg font-bold">-</button>
+                    <input type="number" v-model.number="item.quantity" min="0" class="w-14 text-center border rounded" />
+                    <button @click="increment(item)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-lg font-bold">+</button>
+                    <span class="text-xs text-gray-400 ml-2">in stock</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            search: '',
+            category: '',
+            items: [
+                { id: 1, name: 'Red Thread', category: 'Threads', quantity: 5, photo_path: '', needed: false },
+                { id: 2, name: 'Blue Wool', category: 'Wool', quantity: 2, photo_path: '', needed: true },
+                { id: 3, name: 'Cotton Fabric', category: 'Fabrics', quantity: 10, photo_path: '', needed: false },
+                { id: 4, name: 'PLA Filament', category: 'Filaments', quantity: 1, photo_path: '', needed: true }
+            ]
+        }
+    },
+    computed: {
+        categories() {
+            // Unique categories from items
+            return [...new Set(this.items.map(item => item.category))];
+        },
+        filteredItems() {
+            return this.items.filter(item => {
+                const matchesName = item.name.toLowerCase().includes(this.search.toLowerCase());
+                const matchesCategory = this.category === '' || item.category === this.category;
+                return matchesName && matchesCategory;
+            });
+        }
+    },
+    methods: {
+        increment(item) {
+            item.quantity++;
+        },
+        decrement(item) {
+            if (item.quantity > 0) item.quantity--;
+        }
+    }
+}).mount('#inventory-app');
+</script>
 {% endblock %}
