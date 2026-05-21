@@ -4,6 +4,17 @@
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4">Inventory</h2>
     <div id="inventory-app">
+        <form @submit.prevent="addItem" class="mb-6 flex flex-wrap gap-2 items-end">
+            <input v-model="newItem.name" required placeholder="Name" class="border rounded px-2 py-1" />
+            <input v-model="newItem.category" required placeholder="Category" class="border rounded px-2 py-1" />
+            <input v-model.number="newItem.quantity" type="number" min="1" required placeholder="Quantity" class="border rounded px-2 py-1 w-20" />
+            <input v-model="newItem.photo_path" placeholder="Photo URL (optional)" class="border rounded px-2 py-1 w-48" />
+            <label class="flex items-center space-x-1">
+                <input type="checkbox" v-model="newItem.needed" />
+                <span>Needed</span>
+            </label>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Add Item</button>
+        </form>
         <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4 space-y-2 md:space-y-0">
             <input v-model="search" type="text" placeholder="Search by name..." class="border rounded px-2 py-1 w-full md:w-64" />
             <select v-model="category" class="border rounded px-2 py-1 w-full md:w-48">
@@ -11,6 +22,8 @@
                 <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
             </select>
         </div>
+        <div v-if="loading" class="text-gray-500">Loading...</div>
+        <div v-if="error" class="text-red-500">{{ error }}</div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div v-for="item in filteredItems" :key="item.id" class="bg-white rounded shadow p-2 flex flex-col items-center">
                 <img :src="item.photo_path || 'https://via.placeholder.com/100'" alt="Photo" class="w-24 h-24 object-cover rounded mb-2 border">
@@ -18,9 +31,14 @@
                 <div class="text-sm text-gray-500 mb-1">{{ item.category }}</div>
                 <div class="flex items-center space-x-2 mt-2">
                     <button @click="decrement(item)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-lg font-bold">-</button>
-                    <input type="number" v-model.number="item.quantity" min="0" class="w-14 text-center border rounded" />
+                    <input type="number" v-model.number="item.quantity" min="0" class="w-14 text-center border rounded" @change="updateItem(item)" />
                     <button @click="increment(item)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-lg font-bold">+</button>
                     <span class="text-xs text-gray-400 ml-2">in stock</span>
+                </div>
+                <div class="flex space-x-2 mt-2">
+                    <button @click="deleteItem(item)" class="text-xs text-red-600 hover:underline">Delete</button>
+                    <button v-if="!item.needed" @click="flagAsNeeded(item)" class="text-xs text-green-600 hover:underline">Flag as Needed</button>
+                    <span v-else class="text-xs text-blue-600 font-bold">Needed</span>
                 </div>
             </div>
         </div>
@@ -33,12 +51,10 @@ createApp({
         return {
             search: '',
             category: '',
-            items: [
-                { id: 1, name: 'Red Thread', category: 'Threads', quantity: 5, photo_path: '', needed: false },
-                { id: 2, name: 'Blue Wool', category: 'Wool', quantity: 2, photo_path: '', needed: true },
-                { id: 3, name: 'Cotton Fabric', category: 'Fabrics', quantity: 10, photo_path: '', needed: false },
-                { id: 4, name: 'PLA Filament', category: 'Filaments', quantity: 1, photo_path: '', needed: true }
-            ]
+            items: [],
+            newItem: { name: '', category: '', quantity: 1, photo_path: '', needed: false },
+            loading: false,
+            error: ''
         }
     },
     computed: {
@@ -55,12 +71,73 @@ createApp({
         }
     },
     methods: {
+        fetchItems() {
+            this.loading = true;
+            fetch('/api/inventory')
+                .then(r => r.json())
+                .then(data => { this.items = data; this.loading = false; })
+                .catch(() => { this.error = 'Failed to load inventory.'; this.loading = false; });
+        },
         increment(item) {
             item.quantity++;
+            this.updateItem(item);
         },
         decrement(item) {
-            if (item.quantity > 0) item.quantity--;
+            if (item.quantity > 0) {
+                item.quantity--;
+                this.updateItem(item);
+            }
+        },
+        updateItem(item) {
+            fetch(`/api/inventory/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            }).then(() => this.fetchItems());
+        },
+        deleteItem(item) {
+            fetch(`/api/inventory/${item.id}`, { method: 'DELETE' })
+                .then(() => this.fetchItems());
+        },
+        addItem() {
+            fetch('/api/inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.newItem)
+            })
+            .then(r => r.json())
+            .then(() => {
+                this.newItem = { name: '', category: '', quantity: 1, photo_path: '', needed: false };
+                this.fetchItems();
+            });
+        },
+        flagAsNeeded(item) {
+            // Set needed to true in inventory
+            const updated = { ...item, needed: true };
+            fetch(`/api/inventory/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updated)
+            })
+            .then(() => {
+                // Add to wishlist
+                fetch('/api/wishlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: item.name,
+                        category: item.category,
+                        quantity: item.quantity,
+                        photo_path: item.photo_path,
+                        needed: true
+                    })
+                });
+            })
+            .then(() => this.fetchItems());
         }
+    },
+    mounted() {
+        this.fetchItems();
     }
 }).mount('#inventory-app');
 </script>

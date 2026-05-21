@@ -4,13 +4,25 @@
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4">Shopping & Wish List</h2>
     <div id="wishlist-app">
-        <div v-if="wishlist.length === 0" class="text-gray-500">No items flagged as needed.</div>
+        <form @submit.prevent="addItem" class="mb-6 flex flex-wrap gap-2 items-end">
+            <input v-model="newItem.name" required placeholder="Name" class="border rounded px-2 py-1" />
+            <input v-model="newItem.category" required placeholder="Category" class="border rounded px-2 py-1" />
+            <input v-model.number="newItem.quantity" type="number" min="1" required placeholder="Quantity" class="border rounded px-2 py-1 w-20" />
+            <input v-model="newItem.photo_path" placeholder="Photo URL (optional)" class="border rounded px-2 py-1 w-48" />
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Add Item</button>
+        </form>
+        <div v-if="loading" class="text-gray-500">Loading...</div>
+        <div v-if="error" class="text-red-500">{{ error }}</div>
         <ul class="space-y-2">
             <li v-for="item in wishlist" :key="item.id" class="bg-white rounded shadow p-3 flex items-center">
                 <img :src="item.photo_path || 'https://via.placeholder.com/50'" alt="Photo" class="w-12 h-12 object-cover rounded mr-4 border">
                 <div class="flex-1">
                     <div class="font-semibold">{{ item.name }}</div>
                     <div class="text-xs text-gray-500">{{ item.category }}</div>
+                    <div class="flex items-center mt-1">
+                        <input type="number" v-model.number="item.quantity" min="1" class="w-14 text-center border rounded mr-2" @change="updateItem(item)" />
+                        <button @click="deleteItem(item)" class="text-xs text-red-600 hover:underline ml-2">Delete</button>
+                    </div>
                 </div>
                 <span class="ml-4 text-blue-600 font-bold">Needed</span>
             </li>
@@ -22,11 +34,46 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            wishlist: [
-                { id: 2, name: 'Blue Wool', category: 'Wool', quantity: 2, photo_path: '', needed: true },
-                { id: 4, name: 'PLA Filament', category: 'Filaments', quantity: 1, photo_path: '', needed: true }
-            ]
+            wishlist: [],
+            newItem: { name: '', category: '', quantity: 1, photo_path: '', needed: true },
+            loading: false,
+            error: ''
         }
+    },
+    methods: {
+        fetchItems() {
+            this.loading = true;
+            fetch('/api/wishlist')
+                .then(r => r.json())
+                .then(data => { this.wishlist = data; this.loading = false; })
+                .catch(() => { this.error = 'Failed to load wishlist.'; this.loading = false; });
+        },
+        updateItem(item) {
+            fetch(`/api/wishlist/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            }).then(() => this.fetchItems());
+        },
+        deleteItem(item) {
+            fetch(`/api/wishlist/${item.id}`, { method: 'DELETE' })
+                .then(() => this.fetchItems());
+        },
+        addItem() {
+            fetch('/api/wishlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.newItem)
+            })
+            .then(r => r.json())
+            .then(() => {
+                this.newItem = { name: '', category: '', quantity: 1, photo_path: '', needed: true };
+                this.fetchItems();
+            });
+        }
+    },
+    mounted() {
+        this.fetchItems();
     }
 }).mount('#wishlist-app');
 </script>
