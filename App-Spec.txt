@@ -1,0 +1,14 @@
+
+Title: Hobby Stock Tracker
+One-Liner: A visual inventory app for hobbyists to track craft supplies by photo and quantity, with a built-in shopping and wish list.
+High-Level Functional Requirements:
+Users add inventory items with a photo, category (threads, fabrics, wool, filaments, etc.), and a quantity counter.
+Quantities can be decremented or updated after use; all changes are persisted locally.
+The main view is a scrollable grid showing item photos with stock counts clearly visible at a glance.
+Users can search or filter items by name or category to quickly locate specific stock.
+Any item can be flagged as needed, automatically adding it to a shopping list or wish list for the next store visit.
+
+
+
+
+
